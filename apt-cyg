@@ -89,7 +89,7 @@ function findworkspace()
     mirror="`head -1 /etc/setup/last-mirror`"
   fi
   mirrordir="`echo "$mirror" | sed -e "s/:/%3a/g" -e "s:/:%2f:g"`"
-  
+
   echo Working directory is $cache
   echo Mirror is $mirror
   mkdir -p "$cache/$mirrordir"
@@ -99,18 +99,19 @@ function findworkspace()
 
 function getsetup() 
 {
+  arch=`arch | sed s/i686/x86/g`
   if test "$noscripts" == "0" -a "$noupdate" == "0"
   then
     touch setup.ini
     mv setup.ini setup.ini-save
-    wget -N $mirror/setup.bz2
+    wget -N $mirror/$arch/setup.bz2
     if test -e setup.bz2 && test $? -eq 0
     then
       bunzip2 setup.bz2
       mv setup setup.ini
       echo Updated setup.ini
     else
-      wget -N $mirror/setup.ini
+      wget -N $mirror/$arch/setup.ini
       if test -e setup.ini && test $? -eq 0
       then
         echo Updated setup.ini
@@ -347,7 +348,7 @@ case "$command" in
     file=`basename $install`
     cd "release/$pkg"
     wget -nc $mirror/$install
-    
+ 
     # check the md5
     digest=`cat "desc" | awk '/^install: / { print $4; exit }'` 
     digactual=`md5sum $file | awk '{print $1}'`
@@ -358,8 +359,17 @@ case "$command" in
     fi
     
     echo "Unpacking..."
-    cat $file | bunzip2 | tar > "/etc/setup/$pkg.lst" xvf - -C /
+    if [ ${file: -3} == ".xz" ]
+    then
+        echo "Extracting file of type .xz"
+        tar -xJf $file -C /
+    else
+        echo "Extracting file of type .bz"
+        cat $file | bunzip2 | tar > "/etc/setup/$pkg.lst" xvf - -C /
+    fi
+
     gzip -f "/etc/setup/$pkg.lst"
+
     cd ../..
     
     
